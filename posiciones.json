@@ -10,5 +10,53 @@
     "carga": "Carga Seca",
     "lat": 15.0000,
     "lng": -30.0000
+  },
+  {
+    "nombre": "Ever Given",
+    "carga": "Contenedores Gigante",
+    "lat": 27.9000,
+    "lng": 34.2000
+  },
+  {
+    "nombre": "CMA CGM Jacques Saadé",
+    "carga": "Gas Natural / Contenedores",
+    "lat": 35.0000,
+    "lng": 15.0000
+  },
+  {
+    "nombre": "OOCL Hong Kong",
+    "carga": "Carga Comercial",
+    "lat": 22.3193,
+    "lng": 114.1694
+  },
+  {
+    "nombre": "HMM Algeciras",
+    "carga": "Contenedores Asia-Europa",
+    "lat": 5.3166,
+    "lng": 95.2000
+  },
+  {
+    "nombre": "MSC Gülsün",
+    "carga": "Electrónica y Textil",
+    "lat": 36.1408,
+    "lng": -5.3536
+  },
+  {
+    "nombre": "Cosco Shipping Universe",
+    "carga": "Materias Primas",
+    "lat": 1.2902,
+    "lng": 103.8519
+  },
+  {
+    "nombre": "Pacific Explorer",
+    "carga": "Granelera",
+    "lat": -12.0464,
+    "lng": -77.0428
+  },
+  {
+    "nombre": "Atlantic Pioneer",
+    "carga": "Petróleo Crudo",
+    "lat": -22.9068,
+    "lng": -43.1729
   }
 ]
