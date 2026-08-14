@@ -28,11 +28,11 @@
             .htmlLng(d => d.lng)
             .htmlElement(d => {
                 const el = document.createElement('div');
-                el.innerHTML = `🚢 <span style="background:rgba(0,0,0,0.9); color:#00ffcc; padding:3px 6px; border-radius:4px; font-size:10px; font-weight:bold; border: 1px solid #00ffcc; white-space: nowrap;">${d.nombre}</span>`;
+                // Aumentamos el tamaño de la letra y el padding para que se vea bien en el celular
+                el.innerHTML = `🚢 <span style="background:rgba(0,0,0,0.9); color:#00ffcc; padding:6px 10px; border-radius:6px; font-size:14px; font-weight:bold; border: 2px solid #00ffcc; white-space: nowrap; box-shadow: 0 0 10px rgba(0,255,204,0.5);">${d.nombre}</span>`;
                 return el;
             });
 
-        // Ajustar el tamaño si la pantalla gira o cambia
         window.addEventListener('resize', () => {
             world.width(window.innerWidth);
             world.height(window.innerHeight);
