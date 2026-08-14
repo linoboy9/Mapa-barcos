@@ -3,12 +3,12 @@
     "nombre": "MSC Isabella",
     "carga": "Contenedores General",
     "lat": 25.7617,
-    "lon": -80.1918
+    "lng": -80.1918
   },
   {
     "nombre": "Maersk Mc-Kinney",
     "carga": "Carga Seca",
     "lat": 15.0000,
-    "lon": -30.0000
+    "lng": -30.0000
   }
 ]
