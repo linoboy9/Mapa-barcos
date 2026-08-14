@@ -1,5 +1,14 @@
 [
-    {"nombre": "MSC Emma", "lat": 25.123, "lon": -45.789, "carga": "Contenedores"},
-    {"nombre": "Maersk Mc-Kinney", "lat": -12.456, "lon": 80.123, "carga": "Electrónica"},
-    {"nombre": "CMA CGM Jacques", "lat": 35.890, "lon": -10.345, "carga": "Alimentos"}
+  {
+    "nombre": "MSC Isabella",
+    "carga": "Contenedores General",
+    "lat": 25.7617,
+    "lon": -80.1918
+  },
+  {
+    "nombre": "Maersk Mc-Kinney",
+    "carga": "Carga Seca",
+    "lat": 15.0000,
+    "lon": -30.0000
+  }
 ]
