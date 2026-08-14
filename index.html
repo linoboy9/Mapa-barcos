@@ -2,51 +2,68 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Centro de Control - Globo 3D</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Centro de Control Real - Barcos</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
-        #globe-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; }
-        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.8); padding: 8px 12px; border-radius: 5px; z-index: 10; font-size: 11px; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; }
+        #globe-container { width: 100vw; height: 100vh; }
+        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.8); padding: 8px; border-radius: 5px; z-index: 10; font-size: 11px; }
     </style>
     <script src="//unpkg.com/three"></script>
     <script src="//unpkg.com/globe.gl"></script>
 </head>
 <body>
-    <div id="info">🌍 Centro de Control Global - Barcos Activos</div>
+    <div id="info">📡 Conectado al tráfico marítimo en vivo...</div>
     <div id="globe-container"></div>
 
     <script>
-        const container = document.getElementById('globe-container');
-        
-        const world = Globe()
-            (container)
+        const world = Globe()(document.getElementById('globe-container'))
             .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
-            .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
-            .htmlElementsData([])
             .htmlLat(d => d.lat)
             .htmlLng(d => d.lng)
             .htmlElement(d => {
                 const el = document.createElement('div');
-                // Aumentamos el tamaño de la letra y el padding para que se vea bien en el celular
-                el.innerHTML = `🚢 <span style="background:rgba(0,0,0,0.9); color:#00ffcc; padding:6px 10px; border-radius:6px; font-size:14px; font-weight:bold; border: 2px solid #00ffcc; white-space: nowrap; box-shadow: 0 0 10px rgba(0,255,204,0.5);">${d.nombre}</span>`;
+                el.innerHTML = `🚢 <span style="background:rgba(0,0,0,0.8); color:#00ffcc; padding:2px 4px; border-radius:3px; font-size:10px; border:1px solid #00ffcc; white-space:nowrap;">${d.nombre}</span>`;
                 return el;
             });
 
-        window.addEventListener('resize', () => {
-            world.width(window.innerWidth);
-            world.height(window.innerHeight);
-        });
-
         world.controls().autoRotate = true;
-        world.controls().autoRotateSpeed = 0.5;
+        world.controls().autoRotateSpeed = 0.2;
 
-        fetch('posiciones.json')
-            .then(response => response.json())
-            .then(data => {
-                world.htmlElementsData(data);
-            })
-            .catch(error => console.log('Error cargando datos:', error));
+        const socket = new WebSocket("wss://stream.aisstream.io/v0/stream");
+
+        socket.onopen = () => {
+            console.log("Conectado al servidor de barcos");
+            socket.send(JSON.stringify({
+                "APIKey": "c9448c359fff4a189388f41f642c38861b9a73c5", 
+                "BoundingBoxes": [[[-90, -180], [90, 180]]]
+            }));
+        };
+
+        let ships = [];
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.MessageType === "PositionReport") {
+                const shipName = data.MetaData.ShipName ? data.MetaData.ShipName.trim() : "Desconocido";
+                const lat = data.Message.PositionReport.Latitude;
+                const lng = data.Message.PositionReport.Longitude;
+
+                const existingIndex = ships.findIndex(s => s.nombre === shipName);
+                if (existingIndex >= 0) {
+                    ships[existingIndex].lat = lat;
+                    ships[existingIndex].lng = lng;
+                } else {
+                    ships.push({ nombre: shipName, lat: lat, lng: lng });
+                    if (ships.length > 150) ships.shift();
+                }
+
+                world.htmlElementsData([...ships]);
+            }
+        };
+
+        socket.onerror = (error) => {
+            console.error("Error en el WebSocket:", error);
+        };
     </script>
 </body>
 </html>
