@@ -5,44 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Centro de Control - Globo 3D</title>
     <style>
-        body { margin: 0; padding: 0; background: #0b0f19; overflow: hidden; font-family: sans-serif; }
+        body { margin: 0; padding: 0; background: #000; overflow: hidden; font-family: sans-serif; }
         #globe-container { width: 100vw; height: 100vh; }
-        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; pointer-events: none; z-index: 10; }
+        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; z-index: 10; font-size: 12px; }
     </style>
-    <!-- Importamos Globe.gl y Three.js -->
     <script src="//unpkg.com/three"></script>
     <script src="//unpkg.com/globe.gl"></script>
 </head>
 <body>
-    <div id="info">🌍 Centro de Control Global - Rotación Activa</div>
+    <div id="info">🌍 Centro de Control Global - Barcos Activos</div>
     <div id="globe-container"></div>
 
     <script>
-        // Inicializamos el globo terráqueo
         const world = Globe()
             (document.getElementById('globe-container'))
-            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
             .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
-            .htmlElementsData([]) 
+            .htmlElementsData([])
+            .htmlLat(d => d.lat)
+            .htmlLng(d => d.lng)
             .htmlElement(d => {
                 const el = document.createElement('div');
-                el.innerHTML = `🚢 <span style="background:rgba(0,0,0,0.8); color:white; padding:2px 5px; border-radius:3px; font-size:10px;">${d.nombre}</span>`;
-                el.style.cursor = 'pointer';
+                el.innerHTML = `🚢 <span style="background:rgba(0,0,0,0.9); color:#00ffcc; padding:3px 6px; border-radius:4px; font-size:11px; font-weight:bold; border: 1px solid #00ffcc;">${d.nombre}</span>`;
                 return el;
             });
 
-        // Hacemos que el globo gire automáticamente de forma suave
         world.controls().autoRotate = true;
         world.controls().autoRotateSpeed = 0.5;
 
-        // Leemos las posiciones de los barcos desde tu archivo posiciones.json
         fetch('posiciones.json')
             .then(response => response.json())
             .then(data => {
                 world.htmlElementsData(data);
             })
-            .catch(error => console.log('Esperando archivo de datos...'));
+            .catch(error => console.log('Error cargando datos:', error));
     </script>
 </body>
 </html>
-
