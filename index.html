@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Centro de Control - Globo 3D</title>
     <style>
-        body { margin: 0; padding: 0; background: #000; overflow: hidden; font-family: sans-serif; }
-        #globe-container { width: 100vw; height: 100vh; }
-        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; z-index: 10; font-size: 12px; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
+        #globe-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; }
+        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.8); padding: 8px 12px; border-radius: 5px; z-index: 10; font-size: 11px; }
     </style>
     <script src="//unpkg.com/three"></script>
     <script src="//unpkg.com/globe.gl"></script>
@@ -17,8 +17,10 @@
     <div id="globe-container"></div>
 
     <script>
+        const container = document.getElementById('globe-container');
+        
         const world = Globe()
-            (document.getElementById('globe-container'))
+            (container)
             .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
             .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
             .htmlElementsData([])
@@ -26,9 +28,15 @@
             .htmlLng(d => d.lng)
             .htmlElement(d => {
                 const el = document.createElement('div');
-                el.innerHTML = `🚢 <span style="background:rgba(0,0,0,0.9); color:#00ffcc; padding:3px 6px; border-radius:4px; font-size:11px; font-weight:bold; border: 1px solid #00ffcc;">${d.nombre}</span>`;
+                el.innerHTML = `🚢 <span style="background:rgba(0,0,0,0.9); color:#00ffcc; padding:3px 6px; border-radius:4px; font-size:10px; font-weight:bold; border: 1px solid #00ffcc; white-space: nowrap;">${d.nombre}</span>`;
                 return el;
             });
+
+        // Ajustar el tamaño si la pantalla gira o cambia
+        window.addEventListener('resize', () => {
+            world.width(window.innerWidth);
+            world.height(window.innerHeight);
+        });
 
         world.controls().autoRotate = true;
         world.controls().autoRotateSpeed = 0.5;
