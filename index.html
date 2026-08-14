@@ -26,7 +26,7 @@
 
         // Leemos el archivo con las posiciones de los barcos
         fetch('posiciones.json')
-            .response => response.json())
+           .then( response => response.json())
             .then(data => {
                 data.forEach(barco => {
                     var marker = L.marker([barco.lat, barco.lon]).addTo(map);
