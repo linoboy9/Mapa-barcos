@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Centro de Control Real - Barcos en Vivo</title>
+    <title>Centro de Control - Barcos en Vivo</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; }
         #globe-container { width: 100vw; height: 100vh; }
@@ -13,7 +13,7 @@
     <script src="//unpkg.com/globe.gl"></script>
 </head>
 <body>
-    <div id="info">🛰️ Conectando al tráfico marítimo en vivo...</div>
+    <div id="info">🛰️ Cargando tráfico marítimo...</div>
     <div id="globe-container"></div>
 
     <script>
@@ -30,61 +30,25 @@
         world.controls().autoRotate = true;
         world.controls().autoRotateSpeed = 0.2;
 
-        let ships = [];
+        function cargarBarcos() {
+            // Añadimos un número aleatorio al final (?t=...) para evitar que el navegador guarde memoria vieja y lea siempre el archivo fresco
+            fetch('posiciones.json?t=' + new Date().getTime())
+              .then(response => response.json())
+              .then(ships => {
+                world.htmlElementsData(ships);
+                document.getElementById('info').innerHTML = `🛰️ En línea: ${ships.length} barcos activos`;
+              })
+              .catch(error => {
+                console.error('Error cargando los barcos:', error);
+                document.getElementById('info').innerHTML = `⚠️ Esperando actualización de datos...`;
+              });
+        }
 
-        // Conexión en tiempo real por WebSocket
-        const socket = new WebSocket("wss://stream.aisstream.io/v0/stream");
+        // Cargar al iniciar
+        cargarBarcos();
 
-        socket.onopen = () => {
-            console.log("Conectado al servidor de barcos");
-            document.getElementById('info').innerHTML = `🛰️ Conectado al tráfico marítimo en vivo...`;
-            
-            socket.send(JSON.stringify({
-                "APIKey": "c9448c35fff4a189388f41f642c366ffb9a2cbb242484bc2aa796850c95971bc",
-                "BoundingBoxes": [[[-90, -180], [90, 180]]]
-            }));
-        };
-
-        socket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.MessageType === "PositionReport") {
-                    const shipName = data.MetaData.ShipName ? data.MetaData.ShipName.trim() : "Barco sin nombre";
-                    const lat = data.Message.PositionReport.Latitude;
-                    const lng = data.Message.PositionReport.Longitude;
-                    const mmsi = data.MetaData.MMSI;
-
-                    // Buscar si el barco ya existe para actualizar su posición o agregarlo nuevo
-                    const existingIndex = ships.findIndex(s => s.mmsi === mmsi);
-                    if (existingIndex >= 0) {
-                        ships[existingIndex].lat = lat;
-                        ships[existingIndex].lng = lng;
-                    } else {
-                        ships.push({ mmsi: mmsi, nombre: shipName, lat: lat, lng: lng });
-                    }
-
-                    // Limitar a 300 barcos máximos en pantalla para que el navegador no se ponga lento
-                    if (ships.length > 300) {
-                        ships.shift();
-                    }
-
-                    // Refrescar los elementos en el globo terráqueo
-                    world.htmlElementsData([...ships]);
-                    document.getElementById('info').innerHTML = `🛰️ En vivo: ${ships.length} barcos activos`;
-                }
-            } catch (err) {
-                console.error("Error procesando mensaje:", err);
-            }
-        };
-
-        socket.onerror = (error) => {
-            console.error("Error en WebSocket:", error);
-            document.getElementById('info').innerHTML = `❌ Error de conexión en vivo`;
-        };
-
-        socket.onclose = () => {
-            document.getElementById('info').innerHTML = `⚠️ Desconectado del servidor en vivo`;
-        };
+        // Volver a cargar los datos automáticamente cada 5 segundos para mantenerlo en tiempo real
+        setInterval(cargarBarcos, 5000);
     </script>
 </body>
 </html>
