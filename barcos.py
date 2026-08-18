@@ -17,6 +17,12 @@ barcos_guardados = {}
 def on_message(ws, message):
     try:
         datos = json.loads(message)
+        
+        # Verificamos si hay error de autenticación u otro mensaje del servidor
+        if 'error' in datos:
+            print(f"❌ Error reportado por AIS Stream: {datos['error']}")
+            return
+
         if 'MetaData' in datos:
             barco = datos['MetaData']
             mmsi = barco.get('MMSI') # ID único de cada barco
@@ -31,13 +37,13 @@ def on_message(ws, message):
                     del barcos_guardados[viejo_mmsi]
 
                 # Mostramos en la consola de Render qué barco se actualizó
-                print(f"Barco actualizado: {barco.get('ShipName', 'Desconocido')} | Lat: {barco.get('latitude')} | Lon: {barco.get('longitude')}")
+                print(f"🚢 Barco actualizado: {barco.get('ShipName', 'Desconocido')} | Lat: {barco.get('latitude')} | Lon: {barco.get('longitude')}")
                 
     except Exception as e:
-        print(f"Error procesando el mensaje: {e}")
+        print(f"⚠️ Error procesando el mensaje: {e}")
 
 def on_open(ws):
-    print("Conexión exitosa a aisstream.io. Buscando barcos...")
+    print("✅ ¡Conexión exitosa a aisstream.io! Enviando suscripción global...")
     subscribe = {
         "APIKey": API_KEY,
         "BoundingBoxes": [[[-90, -180], [90, 180]]] # Todo el mundo
@@ -45,20 +51,29 @@ def on_open(ws):
     ws.send(json.dumps(subscribe))
 
 def on_error(ws, error):
-    print(f"Error en WebSocket: {error}")
+    print(f"❌ Error en WebSocket de AIS Stream: {error}")
 
 def on_close(ws, close_status_code, close_msg):
-    print("Conexión de WebSocket cerrada.")
+    print(f"🔒 Conexión de WebSocket cerrada. Código: {close_status_code}, Mensaje: {close_msg}")
 
 def iniciar_tracker():
-    ws = websocket.WebSocketApp(
-        "wss://stream.aisstream.io/v0/stream",
-        on_message=on_message,
-        on_open=on_open,
-        on_error=on_error,
-        on_close=on_close
-    )
-    ws.run_forever()
+    while True:
+        try:
+            print("🔄 Intentando conectar al WebSocket de AIS Stream...")
+            ws = websocket.WebSocketApp(
+                "wss://stream.aisstream.io/v0/stream",
+                on_message=on_message,
+                on_open=on_open,
+                on_error=on_error,
+                on_close=on_close
+            )
+            ws.run_forever(ping_interval=30, ping_timeout=10)
+        except Exception as e:
+            print(f"⚠️ Error en el bucle del tracker: {e}")
+        
+        # Esperar 5 segundos antes de intentar reconectar si se cae
+        import time
+        time.sleep(5)
 
 # --- RUTAS DEL SERVIDOR FLASK ---
 
@@ -72,9 +87,8 @@ def ver_datos():
     return jsonify(list(barcos_guardados.values()))
 
 if __name__ == "__main__":
-    # Arrancamos el rastreador en segundo plano
-    hilo = threading.Thread(target=iniciar_tracker)
-    hilo.daemon = True
+    # Arrancamos el rastreador en segundo plano antes de levantar Flask
+    hilo = threading.Thread(target=iniciar_tracker, daemon=True)
     hilo.start()
 
     # Arrancamos el servidor para que Render lo detecte
