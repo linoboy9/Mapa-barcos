@@ -70,7 +70,7 @@ def home():
 
 @app.route('/datos')
 def ver_datos():
-    return jsonify(list(barcos_guardados.values()))
+    return jsonify(list(barcosguardados.values()))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
