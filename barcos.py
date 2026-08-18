@@ -18,7 +18,6 @@ def on_message(ws, message):
     try:
         datos = json.loads(message)
         
-        # Verificamos si hay error de autenticación u otro mensaje del servidor
         if 'error' in datos:
             print(f"❌ Error reportado por AIS Stream: {datos['error']}")
             return
@@ -28,15 +27,12 @@ def on_message(ws, message):
             mmsi = barco.get('MMSI') # ID único de cada barco
             
             if mmsi:
-                # Guardamos o actualizamos la posición del barco
                 barcos_guardados[mmsi] = barco
                 
-                # Si llegamos a más de 50 barcos, borramos el más viejo para no saturar
                 if len(barcos_guardados) > 50:
                     viejo_mmsi = list(barcos_guardados.keys())[0]
                     del barcos_guardados[viejo_mmsi]
 
-                # Mostramos en la consola de Render qué barco se actualizó
                 print(f"🚢 Barco actualizado: {barco.get('ShipName', 'Desconocido')} | Lat: {barco.get('latitude')} | Lon: {barco.get('longitude')}")
                 
     except Exception as e:
@@ -46,7 +42,7 @@ def on_open(ws):
     print("✅ ¡Conexión exitosa a aisstream.io! Enviando suscripción global...")
     subscribe = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[-90, -180], [90, 180]]] # Todo el mundo
+        "BoundingBoxes": [[[-90, -180], [90, 180]]]
     }
     ws.send(json.dumps(subscribe))
 
@@ -57,6 +53,7 @@ def on_close(ws, close_status_code, close_msg):
     print(f"🔒 Conexión de WebSocket cerrada. Código: {close_status_code}, Mensaje: {close_msg}")
 
 def iniciar_tracker():
+    import time
     while True:
         try:
             print("🔄 Intentando conectar al WebSocket de AIS Stream...")
@@ -71,9 +68,11 @@ def iniciar_tracker():
         except Exception as e:
             print(f"⚠️ Error en el bucle del tracker: {e}")
         
-        # Esperar 5 segundos antes de intentar reconectar si se cae
-        import time
         time.sleep(5)
+
+# Arrancar el hilo automáticamente al cargar el módulo (funciona perfecto con Gunicorn en Render)
+hilo = threading.Thread(target=iniciar_tracker, daemon=True)
+hilo.start()
 
 # --- RUTAS DEL SERVIDOR FLASK ---
 
@@ -83,14 +82,8 @@ def home():
 
 @app.route('/datos')
 def ver_datos():
-    # Esta es la ruta que leerá tu página web. Devuelve la lista de todos los barcos.
     return jsonify(list(barcos_guardados.values()))
 
 if __name__ == "__main__":
-    # Arrancamos el rastreador en segundo plano antes de levantar Flask
-    hilo = threading.Thread(target=iniciar_tracker, daemon=True)
-    hilo.start()
-
-    # Arrancamos el servidor para que Render lo detecte
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
