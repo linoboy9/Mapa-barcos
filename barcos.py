@@ -9,8 +9,8 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app) 
 
-API_KEY = "c9448c359fff4a189388f41f642c38861b9a73c5"
-barcos_guardados = {}
+API_KEY = "dc517d15a90a84878c0977ae66a2895e04501b2d"
+barcosguardados = {}
 
 def on_message(ws, message):
     try:
