@@ -19,21 +19,24 @@
     <script>
         const world = Globe()(document.getElementById('globe-container'))
           .globeImageUrl('//unpkg.com/three-globe/example/img/earth-day.jpg')
-
-          .htmlLat(d => d.lat)
-          .htmlLng(d => d.lng)
+          .htmlLat(d => d.latitude)
+          .htmlLng(d => d.longitude)
           .htmlElement(d => {
             const el = document.createElement('div');
-            el.innerHTML = `🚢 <span style="background: rgba(0,0,0,0.8); color: white; padding: 2px 5px; border-radius: 4px; font-size: 10px;">${d.nombre}</span>`;
+            // Usamos d.ShipName como viene de aisstream
+            const nombreBarco = d.ShipName || 'Desconocido';
+            el.innerHTML = `🚢 <span style="background: rgba(0,0,0,0.8); color: white; padding: 2px 5px; border-radius: 4px; font-size: 10px;">${nombreBarco}</span>`;
             return el;
           });
 
         world.controls().autoRotate = true;
         world.controls().autoRotateSpeed = 0.2;
 
+        // URL de tu API en Render (asegúrate de que sea tu link exacto)
+        const RENDER_API_URL = 'https://mapa-barcos.onrender.com/datos';
+
         function cargarBarcos() {
-            // Añadimos un número aleatorio al final (?t=...) para evitar que el navegador guarde memoria vieja y lea siempre el archivo fresco
-            fetch('posiciones.json?t=' + new Date().getTime())
+            fetch(RENDER_API_URL)
               .then(response => response.json())
               .then(ships => {
                 world.htmlElementsData(ships);
@@ -41,14 +44,14 @@
               })
               .catch(error => {
                 console.error('Error cargando los barcos:', error);
-                document.getElementById('info').innerHTML = `⚠️ Esperando actualización de datos...`;
+                document.getElementById('info').innerHTML = `⚠️ Conectando con el servidor en Render...`;
               });
         }
 
         // Cargar al iniciar
         cargarBarcos();
 
-        // Volver a cargar los datos automáticamente cada 5 segundos para mantenerlo en tiempo real
+        // Volver a consultar la API cada 5 segundos para actualizar las posiciones en tiempo real
         setInterval(cargarBarcos, 5000);
     </script>
 </body>
