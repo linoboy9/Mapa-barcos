@@ -1,27 +1,82 @@
 import websocket
 import json
+import threading
+import os
+from flask import Flask, jsonify
+from flask_cors import CORS
 
-# 1. Saca tu API key gratis en aisstream.io (te la dan en 2 min)
+app = Flask(__name__)
+# Esto es vital para que GitHub Pages no bloquee la conexión
+CORS(app) 
+
 API_KEY = "c9448c359fff4a189388f41f642c38861b9a73c5"
 
+# Usamos un diccionario en memoria para guardar hasta 50 barcos simultáneos
+barcos_guardados = {}
+
 def on_message(ws, message):
-    datos = json.loads(message)
-    # Esto ya es un barco REAL moviéndose ahora mismo
-    barco = datos['MetaData']
-    print(f"Barco: {barco['ShipName']} | Lat: {datos['Message']['PositionReport']['Latitude']} | Lon: {datos['Message']['PositionReport']['Longitude']}")
-    
-    # Aquí lo guardas en tu json como hacías
-    with open("posiciones.json", "w") as archivo:
-        json.dump(barco, archivo, indent=4)
+    try:
+        datos = json.loads(message)
+        if 'MetaData' in datos:
+            barco = datos['MetaData']
+            mmsi = barco.get('MMSI') # ID único de cada barco
+            
+            if mmsi:
+                # Guardamos o actualizamos la posición del barco
+                barcos_guardados[mmsi] = barco
+                
+                # Si llegamos a más de 50 barcos, borramos el más viejo para no saturar
+                if len(barcos_guardados) > 50:
+                    viejo_mmsi = list(barcos_guardados.keys())[0]
+                    del barcos_guardados[viejo_mmsi]
+
+                # Mostramos en la consola de Render qué barco se actualizó
+                print(f"Barco actualizado: {barco.get('ShipName', 'Desconocido')} | Lat: {barco.get('latitude')} | Lon: {barco.get('longitude')}")
+                
+    except Exception as e:
+        print(f"Error procesando el mensaje: {e}")
 
 def on_open(ws):
-    # Le dices: "Quiero ver todos los barcos del Atlántico"
+    print("Conexión exitosa a aisstream.io. Buscando barcos...")
     subscribe = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[-90, -180], [90, 180]]], # todo el mundo
-        "FilterMessageTypes": ["PositionReport"]
+        "BoundingBoxes": [[[-90, -180], [90, 180]]] # Todo el mundo
     }
     ws.send(json.dumps(subscribe))
 
-ws = websocket.WebSocketApp("wss://stream.aisstream.io/v0/stream", on_message=on_message, on_open=on_open)
-ws.run_forever()
+def on_error(ws, error):
+    print(f"Error en WebSocket: {error}")
+
+def on_close(ws, close_status_code, close_msg):
+    print("Conexión de WebSocket cerrada.")
+
+def iniciar_tracker():
+    ws = websocket.WebSocketApp(
+        "wss://stream.aisstream.io/v0/stream",
+        on_message=on_message,
+        on_open=on_open,
+        on_error=on_error,
+        on_close=on_close
+    )
+    ws.run_forever()
+
+# --- RUTAS DEL SERVIDOR FLASK ---
+
+@app.route('/')
+def home():
+    return "¡El backend de barcos está funcionando 24/7 en Render!"
+
+@app.route('/datos')
+def ver_datos():
+    # Esta es la ruta que leerá tu página web. Devuelve la lista de todos los barcos.
+    return jsonify(list(barcos_guardados.values()))
+
+if __name__ == "__main__":
+    # Arrancamos el rastreador en segundo plano
+    hilo = threading.Thread(target=iniciar_tracker)
+    hilo.daemon = True
+    hilo.start()
+
+    # Arrancamos el servidor para que Render lo detecte
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
