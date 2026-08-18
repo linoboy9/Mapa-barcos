@@ -9,7 +9,10 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app) 
 
-API_KEY = "dc517d15a90a84878c0977ae66a2895e04501b2d"
+import os
+
+API_KEY = os.environ.get("AIS_API_KEY")
+
 barcosguardados = {}
 
 def on_message(ws, message):
