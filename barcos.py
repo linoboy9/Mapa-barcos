@@ -26,7 +26,7 @@ def on_message(ws, message):
                     del barcosguardados[viejo_mmsi]
                 print(f"🚢 Barco: {barco.get('ShipName', 'Desconocido')} | Lat: {barco.get('latitude')} | Lon: {barco.get('longitude')}")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error procesando mensaje: {e}")
 
 def on_open(ws):
     print("✅ ¡Conectado con éxito a aisstream.io!")
@@ -43,7 +43,7 @@ def on_close(ws, code, msg):
     print("🔒 WebSocket cerrado temporalmente.")
 
 def iniciar_tracker():
-    time.sleep(10)
+    time.sleep(5)
     while True:
         try:
             print("🔄 Conectando al stream de barcos...")
@@ -54,11 +54,11 @@ def iniciar_tracker():
                 on_error=on_error,
                 on_close=on_close
             )
-            ws.run_forever(ping_interval=30, ping_timeout=10)
+            ws.run_forever()
         except Exception as e:
             print(f"Error en tracker: {e}")
         
-        time.sleep(15)
+        time.sleep(10)
 
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
 hilo.start()
