@@ -12,11 +12,18 @@ CORS(app)
 
 API_KEY = os.environ.get("AIS_API_KEY")
 
+# --- DIAGNOSTICO DE CREDENCIALES ---
+if API_KEY:
+    print(f"🔑 API_KEY leída correctamente desde Render: {API_KEY[:4]}... (Longitud: {len(API_KEY)})", flush=True)
+else:
+    print("🚨 ¡ALERTA ROJA! AIS_API_KEY está VACÍA o NO EXISTE en las variables de entorno de Render.", flush=True)
+# ----------------------------------
+
 barcosguardados = {}
 lock = threading.Lock()
 
 def on_message(ws, message):
-    print(f"📥 ¡LLEGÓ DATOS!: {message[:250]}", flush=True)
+    print(f"📥 ¡MENSAJE RECIBIDO!: {message[:300]}", flush=True)
     try:
         datos = json.loads(message)
         if 'MetaData' in datos:
@@ -29,7 +36,7 @@ def on_message(ws, message):
             if mmsi and lat is not None and lon is not None:
                 with lock:
                     barcosguardados[mmsi] = meta
-                    print(f"🚢 Barco: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
+                    print(f"🚢 Barco guardado: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
                     if len(barcosguardados) > 300:
                         viejo_mmsi = list(barcosguardados.keys())[0]
                         del barcosguardados[viejo_mmsi]
@@ -37,20 +44,22 @@ def on_message(ws, message):
         print(f"❌ Error procesando JSON: {e}", flush=True)
 
 def on_error(ws, error):
-    print(f"❌ ERROR CRÍTICO EN SOCKET: {repr(error)}", flush=True)
+    print(f"❌ ERROR EN SOCKET: {repr(error)}", flush=True)
 
 def on_close(ws, close_status_code, close_msg):
-    print(f"🔌 EL SERVIDOR CERRÓ EL SOCKET. Código: {close_status_code} - Msg: {close_msg}", flush=True)
+    print(f"🔌 Socket cerrado. Código: {close_status_code} - Msg: {close_msg}", flush=True)
 
 def on_open(ws):
-    print("🟢 Conexión abierta. Enviando JSON limpio...", flush=True)
-    # Payload mínimo indispensable que exige la API de AISStream
+    if not API_KEY:
+        print("❌ Imposible suscribirse: La API Key es nula.", flush=True)
+        return
+    print("🟢 Conexión abierta. Enviando suscripción...", flush=True)
     payload = {
         "APIKey": API_KEY,
         "BoundingBoxes": [[[50.0, 2.0], [54.0, 7.0]]]
     }
     ws.send(json.dumps(payload))
-    print("📤 JSON enviado. Esperando respuesta del satélite...", flush=True)
+    print("📤 Suscripción enviada. Esperando flujo del satélite...", flush=True)
 
 def iniciar_tracker():
     while True:
@@ -64,8 +73,8 @@ def iniciar_tracker():
             )
             ws.run_forever(ping_interval=30, ping_timeout=10)
         except Exception as e:
-            print(f"⚠️ Excepción general en hilo: {e}", flush=True)
-        print("⏳ Reiniciando ciclo de conexión en 5 segundos...", flush=True)
+            print(f"⚠️ Excepción general: {e}", flush=True)
+        print("⏳ Reiniciando ciclo en 5 segundos...", flush=True)
         time.sleep(5)
 
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
