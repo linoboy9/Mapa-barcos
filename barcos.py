@@ -17,6 +17,8 @@ lock = threading.Lock()
 
 def on_message(ws, message):
     try:
+        # Imprimimos de inmediato cualquier cosa que suelte el satélite para romper el silencio
+        print(f"📡 RECIBIDO:", message[:100], flush=True)
         datos = json.loads(message)
         if 'MetaData' in datos:
             meta = datos['MetaData']
@@ -28,44 +30,46 @@ def on_message(ws, message):
             if mmsi and lat is not None and lon is not None:
                 with lock:
                     barcosguardados[mmsi] = meta
-                    # Este es el formato exacto que te gustaba ver en los logs
                     print(f"Barco: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
                     if len(barcosguardados) > 300:
                         viejo_mmsi = list(barcosguardados.keys())[0]
                         del barcosguardados[viejo_mmsi]
     except Exception as e:
-        print(f"❌ Error procesando mensaje: {e}", flush=True)
+        print(f"❌ Error al procesar JSON: {e}", flush=True)
 
 def on_error(ws, error):
-    print(f"❌ ERROR EN WEBSOCKET: {repr(error)}", flush=True)
+    print(f"❌ Error en socket: {repr(error)}", flush=True)
 
 def on_close(ws, close_status_code, close_msg):
-    print(f"🔌 Conexión cerrada.", flush=True)
+    print("🔌 Socket cerrado por el servidor.", flush=True)
 
 def on_open(ws):
-    print("¡Conectado al satélite!", flush=True)
-    # Volvemos a la configuración global original que te traía todos los barcos
-    subscribe = {
+    print("🟢 ¡Canal abierto con éxito! Enviando credenciales...", flush=True)
+    payload = {
         "APIKey": API_KEY,
         "BoundingBoxes": [[[-90, -180], [90, 180]]]
     }
-    ws.send(json.dumps(subscribe))
+    ws.send(json.dumps(payload))
+    print("📤 Credenciales enviadas. Esperando tráfico de barcos...", flush=True)
 
 def iniciar_tracker():
     while True:
         try:
+            print("🔄 Iniciando conexión con AISStream...", flush=True)
             ws = websocket.WebSocketApp(
                 "wss://stream.aisstream.io/v0/stream",
+                on_open=on_open,
                 on_message=on_message,
                 on_error=on_error,
-                on_close=on_close,
-                on_open=on_open
+                on_close=on_close
             )
             ws.run_forever(ping_interval=30, ping_timeout=10)
         except Exception as e:
-            print(f"⚠️ Excepción en el tracker: {e}", flush=True)
+            print(f"⚠️ Error crítico en hilo: {e}", flush=True)
+        print("⏳ Reintentando conexión en 5 segundos...", flush=True)
         time.sleep(5)
 
+# Arrancamos el hilo en segundo plano
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
 hilo.start()
 
