@@ -17,7 +17,6 @@ lock = threading.Lock()
 
 def on_message(ws, message):
     try:
-        # En cuanto llegue el primer paquete, lo gritamos en los logs
         print(f"📡 RECIBIDO:", message[:100], flush=True)
         datos = json.loads(message)
         if 'MetaData' in datos:
@@ -44,14 +43,14 @@ def on_close(ws, close_status_code, close_msg):
     print("🔌 Socket cerrado por el servidor.", flush=True)
 
 def on_open(ws):
-    print("🟢 ¡Canal abierto con éxito! Enviando credenciales...", flush=True)
+    print("🟢 ¡Canal abierto con éxito! Enviando credenciales y filtros...", flush=True)
     payload = {
         "APIKey": API_KEY,
-        # Zona de Europa / Atlántico Norte (Tráfico masivo garantizado para llaves nuevas)
-        "BoundingBoxes": [[[35.0, -15.0], [65.0, 25.0]]]
+        "BoundingBoxes": [[[35.0, -15.0], [65.0, 25.0]]],
+        "FilterMessageTypes": ["PositionReport"]
     }
     ws.send(json.dumps(payload))
-    print("📤 Credenciales enviadas. Esperando tráfico de barcos...", flush=True)
+    print("📤 Credenciales y filtro enviados. Esperando tráfico de barcos...", flush=True)
 
 def iniciar_tracker():
     while True:
