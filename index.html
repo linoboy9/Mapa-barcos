@@ -1,60 +1,10 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Centro de Control - Barcos en Vivo</title>
-    <style>
-        body { margin: 0; background: #000; overflow: hidden; }
-        #globe-container { width: 100vw; height: 100vh; }
-        #info { position: absolute; top: 10px; left: 10px; color: white; font-family: sans-serif; background: rgba(0,0,0,0.7); padding: 8px 12px; border-radius: 6px; z-index: 10; font-size: 14px; }
-    </style>
-    <script src="//unpkg.com/three"></script>
-    <script src="//unpkg.com/globe.gl"></script>
-</head>
-<body>
-    <div id="info">🛰️ Cargando tráfico marítimo...</div>
-    <div id="globe-container"></div>
-
-    <script>
-        const world = Globe()(document.getElementById('globe-container'))
-          .globeImageUrl('//unpkg.com/three-globe/example/img/earth-day.jpg')
-          .htmlLat(d => d.Latitude)
-          .htmlLng(d => d.Longitude)
-          .htmlElement(d => {
-            const el = document.createElement('div');
-            const nombreBarco = d.ShipName || 'Desconocido';
-            el.innerHTML = `🚢 <span style="background: rgba(0,0,0,0.8); color: white; padding: 2px 5px; border-radius: 4px; font-size: 10px; white-space: nowrap; pointer-events: none;">${nombreBarco}</span>`;
-            return el;
-          });
-
-        world.controls().autoRotate = true;
-        world.controls().autoRotateSpeed = 0.2;
-
-        const RENDER_API_URL = 'https://mapa-barcos-api.onrender.com/datos';
-
-        function cargarBarcos() {
-            fetch(RENDER_API_URL)
-              .then(response => response.json())
-              .then(ships => {
-                if (Array.isArray(ships) && ships.length > 0) {
-                    world.htmlElementsData(ships);
-                    document.getElementById('info').innerHTML = `🛰️ En línea: ${ships.length} barcos activos`;
-                } else {
-                    document.getElementById('info').innerHTML = `🛰️ Esperando flujo de datos del servidor...`;
-                }
-              })
-              .catch(error => {
-                console.error('Error cargando los barcos:', error);
-                document.getElementById('info').innerHTML = `⚠️ Conectando con el servidor en Render...`;
-              });
-        }
-
-        // Cargar al iniciar
-        cargarBarcos();
-
-        // Volver a consultar la API cada 5 segundos para actualizar las posiciones
-        setInterval(cargarBarcos, 5000);
-    </script>
-</body>
-</html>
+const world = Globe()(document.getElementById('globe-container'))
+  .globeImageUrl('//unpkg.com/three-globe/example/img/earth-day.jpg')
+  .htmlLat(d => d.latitude)          // ← cambiado
+  .htmlLng(d => d.longitude)         // ← cambiado
+  .htmlElement(d => {
+    const el = document.createElement('div');
+    const nombreBarco = d.ShipName || 'Desconocido';
+    el.innerHTML = `🚢 <span style="background: rgba(0,0,0,0.8); color: white; padding: 2px 5px; border-radius: 4px; font-size: 10px; white-space: nowrap; pointer-events: none;">${nombreBarco}</span>`;
+    return el;
+  });
