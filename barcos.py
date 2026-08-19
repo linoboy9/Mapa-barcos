@@ -53,7 +53,7 @@ def on_open(ws):
     
     payload = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[-90.0, -180.0], [90.0, 180.0]]]
+        ""BoundingBoxes": [[[50.0, -5.0], [52.0, 2.0]]]
         # Sin FilterMessageTypes para recibir todo
     }
     ws.send(json.dumps(payload))
