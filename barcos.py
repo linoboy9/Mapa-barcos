@@ -18,49 +18,40 @@ lock = threading.Lock()
 def on_message(ws, message):
     try:
         datos = json.loads(message)
-        # Filtramos para asegurar que solo procesamos reportes de posición
-        if 'Message' in datos and 'PositionReport' in datos['Message']:
-            pos = datos['Message']['PositionReport']
+        # Volvemos al método directo de MetaData que funcionaba al principio
+        if 'MetaData' in datos:
             meta = datos['MetaData']
             mmsi = meta.get('MMSI')
             nombre = meta.get('ShipName', 'Desconocido').strip()
-            lat = pos.get('Latitude')
-            lon = pos.get('Longitude')
+            lat = meta.get('latitude')
+            lon = meta.get('longitude')
             
             if mmsi and lat is not None and lon is not None:
                 with lock:
-                    barcosguardados[mmsi] = {
-                        "MMSI": mmsi,
-                        "ShipName": nombre,
-                        "latitude": lat,
-                        "longitude": lon
-                    }
-                    # Este log te confirmará cada vez que un barco de Ámsterdam entre a la lista
-                    print(f"🚢 Puerto Ámsterdam: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
-                    
-                    # Mantenemos solo los últimos 200 barcos para no saturar la web
-                    if len(barcosguardados) > 200:
+                    barcosguardados[mmsi] = meta
+                    print(f"Barco: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
+                    if len(barcosguardados) > 300:
                         viejo_mmsi = list(barcosguardados.keys())[0]
                         del barcosguardados[viejo_mmsi]
     except Exception as e:
-        print(f"❌ Error al procesar JSON: {e}", flush=True)
+        print(f"❌ Error procesando mensaje: {e}", flush=True)
 
 def on_error(ws, error):
-    print(f"❌ Error en socket: {repr(error)}", flush=True)
+    print(f"❌ ERROR EN SOCKET: {repr(error)}", flush=True)
 
 def on_close(ws, close_status_code, close_msg):
-    print("🔌 Socket cerrado. Reconectando...", flush=True)
+    print(f"🔌 Socket cerrado. Reconectando...", flush=True)
 
 def on_open(ws):
-    print("🟢 Conectado. Enviando suscripción para zona Ámsterdam...", flush=True)
-    # Coordenadas que cubren el Puerto de Ámsterdam y acceso al Mar del Norte
+    print("🟢 Conectado. Enviando suscripción regional...", flush=True)
+    # Caja que cubre Países Bajos y Mar del Norte (tráfico masivo garantizado)
     payload = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[52.3, 4.5], [52.6, 5.2]]],
+        "BoundingBoxes": [[[50.0, 2.0], [54.0, 7.0]]],
         "FilterMessageTypes": ["PositionReport"]
     }
     ws.send(json.dumps(payload))
-    print("📤 Suscripción enviada. Esperando barcos en Ámsterdam...", flush=True)
+    print("📤 Suscripción enviada.", flush=True)
 
 def iniciar_tracker():
     while True:
@@ -74,7 +65,7 @@ def iniciar_tracker():
             )
             ws.run_forever(ping_interval=30, ping_timeout=10)
         except Exception as e:
-            print(f"⚠️ Error: {e}", flush=True)
+            print(f"⚠️ Excepción: {e}", flush=True)
         time.sleep(5)
 
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
