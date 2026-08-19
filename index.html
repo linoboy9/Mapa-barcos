@@ -1,10 +1,99 @@
-const world = Globe()(document.getElementById('globe-container'))
-  .globeImageUrl('//unpkg.com/three-globe/example/img/earth-day.jpg')
-  .htmlLat(d => d.latitude)          // ← cambiado
-  .htmlLng(d => d.longitude)         // ← cambiado
-  .htmlElement(d => {
-    const el = document.createElement('div');
-    const nombreBarco = d.ShipName || 'Desconocido';
-    el.innerHTML = `🚢 <span style="background: rgba(0,0,0,0.8); color: white; padding: 2px 5px; border-radius: 4px; font-size: 10px; white-space: nowrap; pointer-events: none;">${nombreBarco}</span>`;
-    return el;
-  });
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Centro de Control - Barcos en Vivo</title>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; font-family: system-ui, sans-serif; }
+        #globe-container { width: 100vw; height: 100vh; }
+        #info {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            color: white;
+            background: rgba(0, 0, 0, 0.75);
+            padding: 10px 14px;
+            border-radius: 8px;
+            z-index: 10;
+            font-size: 14px;
+            max-width: 280px;
+        }
+    </style>
+
+    <!-- Librerías -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/globe.gl@2.31.0"></script>
+</head>
+<body>
+    <div id="info">🛰️ Cargando tráfico marítimo...</div>
+    <div id="globe-container"></div>
+
+    <script>
+        // Inicializar el globo
+        const world = Globe()(document.getElementById('globe-container'))
+            .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-day.jpg')
+            .backgroundColor('#000011')
+            .htmlLat(d => d.latitude)
+            .htmlLng(d => d.longitude)
+            .htmlElement(d => {
+                const el = document.createElement('div');
+                const nombre = (d.ShipName || 'Desconocido').trim();
+                el.innerHTML = `
+                    <div style="
+                        background: rgba(0,0,0,0.85);
+                        color: #fff;
+                        padding: 3px 7px;
+                        border-radius: 5px;
+                        font-size: 11px;
+                        white-space: nowrap;
+                        pointer-events: none;
+                        border: 1px solid #00ff88;
+                    ">
+                        🚢 ${nombre}
+                    </div>`;
+                return el;
+            });
+
+        // Rotación automática suave
+        world.controls().autoRotate = true;
+        world.controls().autoRotateSpeed = 0.3;
+
+        const API_URL = 'https://mapa-barcos-api.onrender.com/datos';
+
+        function cargarBarcos() {
+            fetch(API_URL)
+                .then(res => {
+                    if (!res.ok) throw new Error('Error en el servidor: ' + res.status);
+                    return res.json();
+                })
+                .then(ships => {
+                    if (Array.isArray(ships) && ships.length > 0) {
+                        // Filtrar solo los que tienen coordenadas válidas
+                        const validShips = ships.filter(s => 
+                            s.latitude != null && s.longitude != null
+                        );
+                        
+                        world.htmlElementsData(validShips);
+                        document.getElementById('info').innerHTML = 
+                            `🛰️ En línea: <b>${validShips.length}</b> barcos activos`;
+                    } else {
+                        document.getElementById('info').innerHTML = 
+                            '🛰️ Esperando datos del servidor...';
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('info').innerHTML = 
+                        '⚠️ Error de conexión con Render<br><small>Reintentando...</small>';
+                });
+        }
+
+        // Primera carga
+        cargarBarcos();
+
+        // Actualizar cada 6 segundos
+        setInterval(cargarBarcos, 6000);
+    </script>
+</body>
+</html>
