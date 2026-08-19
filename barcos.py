@@ -7,10 +7,11 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app) 
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 API_KEY = os.environ.get("AIS_API_KEY")
 barcosguardados = {}
+lock = threading.Lock()
 
 def on_message(ws, message):
     try:
@@ -19,10 +20,11 @@ def on_message(ws, message):
             barco = datos['MetaData']
             mmsi = barco.get('MMSI')
             if mmsi:
-                barcosguardados[mmsi] = barco
-                if len(barcosguardados) > 100:
-                    viejo_mmsi = list(barcosguardados.keys())[0]
-                    del barcosguardados[viejo_mmsi]
+                with lock:
+                    barcosguardados[mmsi] = barco
+                    if len(barcosguardados) > 150:
+                        viejo_mmsi = list(barcosguardados.keys())[0]
+                        del barcosguardados[viejo_mmsi]
     except Exception as e:
         print(f"Error: {e}")
 
@@ -51,7 +53,8 @@ hilo.start()
 
 @app.route('/datos')
 def ver_datos():
-    return jsonify(list(barcosguardados.values()))
+    with lock:
+        return jsonify(list(barcosguardados.values()))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
