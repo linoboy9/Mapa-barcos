@@ -23,24 +23,26 @@
           .htmlLng(d => d.longitude)
           .htmlElement(d => {
             const el = document.createElement('div');
-            // Usamos d.ShipName como viene de aisstream
             const nombreBarco = d.ShipName || 'Desconocido';
-            el.innerHTML = `🚢 <span style="background: rgba(0,0,0,0.8); color: white; padding: 2px 5px; border-radius: 4px; font-size: 10px;">${nombreBarco}</span>`;
+            el.innerHTML = `🚢 <span style="background: rgba(0,0,0,0.8); color: white; padding: 2px 5px; border-radius: 4px; font-size: 10px; white-space: nowrap; pointer-events: none;">${nombreBarco}</span>`;
             return el;
           });
 
         world.controls().autoRotate = true;
         world.controls().autoRotateSpeed = 0.2;
 
-        // URL corregida con el nombre exacto de tu servicio en Render (-api)
         const RENDER_API_URL = 'https://mapa-barcos-api.onrender.com/datos';
 
         function cargarBarcos() {
             fetch(RENDER_API_URL)
               .then(response => response.json())
               .then(ships => {
-                world.htmlElementsData(ships);
-                document.getElementById('info').innerHTML = `🛰️ En línea: ${ships.length} barcos activos`;
+                if (Array.isArray(ships) && ships.length > 0) {
+                    world.htmlElementsData(ships);
+                    document.getElementById('info').innerHTML = `🛰️ En línea: ${ships.length} barcos activos`;
+                } else {
+                    document.getElementById('info').innerHTML = `🛰️ Esperando flujo de datos del servidor...`;
+                }
               })
               .catch(error => {
                 console.error('Error cargando los barcos:', error);
@@ -51,7 +53,7 @@
         // Cargar al iniciar
         cargarBarcos();
 
-        // Volver a consultar la API cada 5 segundos para actualizar las posiciones en tiempo real
+        // Volver a consultar la API cada 5 segundos para actualizar las posiciones
         setInterval(cargarBarcos, 5000);
     </script>
 </body>
