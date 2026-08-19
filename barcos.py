@@ -18,14 +18,14 @@ lock = threading.Lock()
 def on_message(ws, message):
     try:
         datos = json.loads(message)
-        # AISStream envía la data dentro de un campo 'Message'
+        # Filtramos para asegurar que solo procesamos reportes de posición
         if 'Message' in datos and 'PositionReport' in datos['Message']:
             pos = datos['Message']['PositionReport']
             meta = datos['MetaData']
             mmsi = meta.get('MMSI')
             nombre = meta.get('ShipName', 'Desconocido').strip()
-            lat = meta.get('latitude')
-            lon = meta.get('longitude')
+            lat = pos.get('Latitude')
+            lon = pos.get('Longitude')
             
             if mmsi and lat is not None and lon is not None:
                 with lock:
@@ -33,11 +33,13 @@ def on_message(ws, message):
                         "MMSI": mmsi,
                         "ShipName": nombre,
                         "latitude": lat,
-                        "longitude": lon,
-                        "time": meta.get('time_utc')
+                        "longitude": lon
                     }
-                    print(f"Barco: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
-                    if len(barcosguardados) > 300:
+                    # Este log te confirmará cada vez que un barco de Ámsterdam entre a la lista
+                    print(f"🚢 Puerto Ámsterdam: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
+                    
+                    # Mantenemos solo los últimos 200 barcos para no saturar la web
+                    if len(barcosguardados) > 200:
                         viejo_mmsi = list(barcosguardados.keys())[0]
                         del barcosguardados[viejo_mmsi]
     except Exception as e:
@@ -47,18 +49,18 @@ def on_error(ws, error):
     print(f"❌ Error en socket: {repr(error)}", flush=True)
 
 def on_close(ws, close_status_code, close_msg):
-    print("🔌 Socket cerrado por el servidor.", flush=True)
+    print("🔌 Socket cerrado. Reconectando...", flush=True)
 
 def on_open(ws):
-    print("🟢 Conectado. Enviando suscripción oficial...", flush=True)
-    # Estructura exacta requerida por la API de AisStream
+    print("🟢 Conectado. Enviando suscripción para zona Ámsterdam...", flush=True)
+    # Coordenadas que cubren el Puerto de Ámsterdam y acceso al Mar del Norte
     payload = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[-90, -180], [90, 180]]],
+        "BoundingBoxes": [[[52.3, 4.5], [52.6, 5.2]]],
         "FilterMessageTypes": ["PositionReport"]
     }
     ws.send(json.dumps(payload))
-    print("📤 Suscripción enviada correctamente.", flush=True)
+    print("📤 Suscripción enviada. Esperando barcos en Ámsterdam...", flush=True)
 
 def iniciar_tracker():
     while True:
@@ -72,7 +74,7 @@ def iniciar_tracker():
             )
             ws.run_forever(ping_interval=30, ping_timeout=10)
         except Exception as e:
-            print(f"⚠️ Error crítico: {e}", flush=True)
+            print(f"⚠️ Error: {e}", flush=True)
         time.sleep(5)
 
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
