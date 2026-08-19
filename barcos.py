@@ -12,16 +12,13 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 API_KEY = os.environ.get("AIS_API_KEY")
 
-if not API_KEY:
-    print("⚠️ ¡ALERTA! La variable de entorno 'AIS_API_KEY' NO está configurada en Render.", flush=True)
-else:
-    print("✅ API Key detectada correctamente.", flush=True)
-
 barcosguardados = {}
 lock = threading.Lock()
 
 def on_message(ws, message):
     try:
+        # Imprimimos absolutamente TODO lo que llega del satélite para cazar el formato exacto
+        print(f"📥 MENSAJE CRUDO: {message[:300]}", flush=True)
         datos = json.loads(message)
         if 'MetaData' in datos:
             barco = datos['MetaData']
@@ -29,18 +26,18 @@ def on_message(ws, message):
             if mmsi:
                 with lock:
                     barcosguardados[mmsi] = barco
-                    print(f"🚢 Barco guardado: {barco.get('ShipName', 'Desconocido')} (MMSI: {mmsi})", flush=True)
-                    if len(barcosguardados) > 150:
-                        viejo_mmsi = list(barcosguardados.keys())[0]
-                        del barcosguardados[viejo_mmsi]
+                    print(f"🚢 ¡BARCO GUARDADO! MMSI: {mmsi}", flush=True)
     except Exception as e:
         print(f"❌ Error procesando mensaje: {e}", flush=True)
 
 def on_error(ws, error):
-    print(f"❌ ERROR CRÍTICO en el WebSocket: {repr(error)}", flush=True)
+    print(f"❌ ERROR EN WEBSOCKET: {repr(error)}", flush=True)
+
+def on_close(ws, close_status_code, close_msg):
+    print(f"🔌 Conexión cerrada. Código: {close_status_code}, Mensaje: {close_msg}", flush=True)
 
 def on_open(ws):
-    print("¡Conectado al satélite de AISStream! Enviando suscripción...", flush=True)
+    print("¡Conectado al satélite! Enviando suscripción...", flush=True)
     subscribe = {
         "APIKey": API_KEY,
         "BoundingBoxes": [[[-90, -180], [90, 180]]]
@@ -55,6 +52,7 @@ def iniciar_tracker():
                 "wss://stream.aisstream.io/v0/stream",
                 on_message=on_message,
                 on_error=on_error,
+                on_close=on_close,
                 on_open=on_open
             )
             ws.run_forever(ping_interval=30, ping_timeout=10)
