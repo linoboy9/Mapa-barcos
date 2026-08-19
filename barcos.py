@@ -1,3 +1,4 @@
+import encodings.idna          # ← Esta línea es obligatoria
 import websocket
 import json
 import threading
@@ -29,16 +30,17 @@ def on_message(ws, message):
                     barcosguardados[mmsi] = meta
                     print(f"🚢 Barco: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
                     if len(barcosguardados) > 300:
-                        viejo_mmsi = list(barcosguardados.keys())[0]
+                        # Mejor forma de borrar el más antiguo
+                        viejo_mmsi = next(iter(barcosguardados))
                         del barcosguardados[viejo_mmsi]
     except Exception as e:
-        pass
+        print(f"Error procesando mensaje: {e}", flush=True)
 
 def on_open(ws):
     print("🟢 Conectado a AISStream. Enviando suscripción...", flush=True)
     payload = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[50.0, 2.0], [54.0, 7.0]]],
+        "BoundingBoxes": [[[50.0, 2.0], [54.0, 7.0]]],  # Mar del Norte (OK)
         "FilterMessageTypes": ["PositionReport"]
     }
     ws.send(json.dumps(payload))
@@ -65,6 +67,10 @@ hilo.start()
 def ver_datos():
     with lock:
         return jsonify(list(barcosguardados.values()))
+
+@app.route('/')
+def home():
+    return "API de barcos funcionando. Usa /datos"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
