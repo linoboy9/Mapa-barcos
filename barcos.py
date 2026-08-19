@@ -40,7 +40,7 @@ def on_open(ws):
     print("🟢 Conectado a AISStream. Enviando suscripción...", flush=True)
     payload = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[50.0, 2.0], [54.0, 7.0]]],  # Mar del Norte (OK)
+        "BoundingBoxes": [[[-90.0, -180.0], [90.0, 180.0]]],  # Mar del Norte (OK)
         "FilterMessageTypes": ["PositionReport"]
     }
     ws.send(json.dumps(payload))
