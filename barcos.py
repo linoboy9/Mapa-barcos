@@ -39,7 +39,6 @@ def on_message(ws, message):
                         
     except Exception as e:
         print(f"❌ Error procesando mensaje: {e}", flush=True)
-        print(f"Mensaje crudo: {str(message)[:300]}", flush=True)
 
 def on_error(ws, error):
     print(f"⚠️ Error en WebSocket: {error}", flush=True)
@@ -53,8 +52,7 @@ def on_open(ws):
     
     payload = {
         "APIKey": API_KEY,
-        ""BoundingBoxes": [[[50.0, -5.0], [52.0, 2.0]]]
-        # Sin FilterMessageTypes para recibir todo
+        "BoundingBoxes": [[[50.0, -5.0], [52.0, 2.0]]]
     }
     ws.send(json.dumps(payload))
     print("📤 Suscripción enviada con éxito.", flush=True)
@@ -77,7 +75,6 @@ def iniciar_tracker():
         print("Reintentando en 5 segundos...", flush=True)
         time.sleep(5)
 
-# Arrancar el hilo del tracker
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
 hilo.start()
 
