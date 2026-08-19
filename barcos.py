@@ -17,16 +17,20 @@ lock = threading.Lock()
 
 def on_message(ws, message):
     try:
-        print(f"📥 ¡DATOS RECIBIDOS!: {message[:200]}", flush=True)
         datos = json.loads(message)
         if 'MetaData' in datos:
-            barco = datos['MetaData']
-            mmsi = barco.get('MMSI')
-            if mmsi:
+            meta = datos['MetaData']
+            mmsi = meta.get('MMSI')
+            nombre = meta.get('ShipName', 'Desconocido').strip()
+            lat = meta.get('latitude')
+            lon = meta.get('longitude')
+            
+            if mmsi and lat is not None and lon is not None:
                 with lock:
-                    barcosguardados[mmsi] = barco
-                    print(f"🚢 ¡BARCO GUARDADO! MMSI: {mmsi} - Nombre: {barco.get('ShipName', 'Desconocido')}", flush=True)
-                    if len(barcosguardados) > 150:
+                    barcosguardados[mmsi] = meta
+                    # Este es el formato exacto que te gustaba ver en los logs
+                    print(f"Barco: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
+                    if len(barcosguardados) > 300:
                         viejo_mmsi = list(barcosguardados.keys())[0]
                         del barcosguardados[viejo_mmsi]
     except Exception as e:
@@ -36,22 +40,20 @@ def on_error(ws, error):
     print(f"❌ ERROR EN WEBSOCKET: {repr(error)}", flush=True)
 
 def on_close(ws, close_status_code, close_msg):
-    print(f"🔌 Conexión cerrada. Código: {close_status_code}, Mensaje: {close_msg}", flush=True)
+    print(f"🔌 Conexión cerrada.", flush=True)
 
 def on_open(ws):
-    print("¡Conectado al satélite! Enviando suscripción regional...", flush=True)
-    # Acotamos a la zona del Caribe y Atlántico/Golfo para garantizar flujo inmediato de barcos
+    print("¡Conectado al satélite!", flush=True)
+    # Volvemos a la configuración global original que te traía todos los barcos
     subscribe = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[8.0, -90.0], [30.0, -60.0]]]
+        "BoundingBoxes": [[[-90, -180], [90, 180]]]
     }
     ws.send(json.dumps(subscribe))
-    print("📤 ¡Suscripción enviada al satélite!", flush=True)
 
 def iniciar_tracker():
     while True:
         try:
-            print("Intentando conectar al satélite...", flush=True)
             ws = websocket.WebSocketApp(
                 "wss://stream.aisstream.io/v0/stream",
                 on_message=on_message,
@@ -61,8 +63,7 @@ def iniciar_tracker():
             )
             ws.run_forever(ping_interval=30, ping_timeout=10)
         except Exception as e:
-            print(f"⚠️ Excepción general en el tracker: {e}", flush=True)
-        print("Reintentando conexión en 5 segundos...", flush=True)
+            print(f"⚠️ Excepción en el tracker: {e}", flush=True)
         time.sleep(5)
 
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
