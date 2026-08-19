@@ -9,8 +9,6 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app) 
 
-import os
-
 API_KEY = os.environ.get("AIS_API_KEY")
 
 barcosguardados = {}
@@ -22,10 +20,10 @@ def on_message(ws, message):
             barco = datos['MetaData']
             mmsi = barco.get('MMSI')
             if mmsi:
-                barcos_guardados[mmsi] = barco
-                if len(barcos_guardados) > 50:
-                    viejo_mmsi = list(barcos_guardados.keys())[0]
-                    del barcos_guardados[viejo_mmsi]
+                barcosguardados[mmsi] = barco
+                if len(barcosguardados) > 50:
+                    viejo_mmsi = list(barcosguardados.keys())[0]
+                    del barcosguardados[viejo_mmsi]
                 print(f"🚢 Barco: {barco.get('ShipName', 'Desconocido')} | Lat: {barco.get('latitude')} | Lon: {barco.get('longitude')}")
     except Exception as e:
         print(f"Error: {e}")
@@ -45,7 +43,6 @@ def on_close(ws, code, msg):
     print("🔒 WebSocket cerrado temporalmente.")
 
 def iniciar_tracker():
-    # Esperamos 10 segundos al arrancar para dejar respirar a la API si hubo bloqueo 429
     time.sleep(10)
     while True:
         try:
@@ -61,7 +58,6 @@ def iniciar_tracker():
         except Exception as e:
             print(f"Error en tracker: {e}")
         
-        # Esperamos 15 segundos antes de reintentar si se cae, evitando el error 429
         time.sleep(15)
 
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
