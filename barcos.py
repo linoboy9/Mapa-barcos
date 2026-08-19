@@ -1,3 +1,4 @@
+import encodings.idna
 import websocket
 import json
 import threading
