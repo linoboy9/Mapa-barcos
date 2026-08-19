@@ -19,8 +19,8 @@
     <script>
         const world = Globe()(document.getElementById('globe-container'))
           .globeImageUrl('//unpkg.com/three-globe/example/img/earth-day.jpg')
-          .htmlLat(d => d.latitude)
-          .htmlLng(d => d.longitude)
+          .htmlLat(d => d.Latitude)
+          .htmlLng(d => d.Longitude)
           .htmlElement(d => {
             const el = document.createElement('div');
             const nombreBarco = d.ShipName || 'Desconocido';
