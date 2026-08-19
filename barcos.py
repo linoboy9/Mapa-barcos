@@ -11,17 +11,10 @@ CORS(app)
 
 API_KEY = os.environ.get("AIS_API_KEY")
 
-if API_KEY:
-    print(f"🔑 API_KEY cargada correctamente (Longitud: {len(API_KEY)})", flush=True)
-else:
-    print("🚨 ALERTA: AIS_API_KEY no encontrada en el entorno de Render.", flush=True)
-
 barcosguardados = {}
 lock = threading.Lock()
 
 def on_message(ws, message):
-    # Esto imprimirá de inmediato cualquier dato que suelte el servidor
-    print(f"📥 DATO CRUDO RECIBIDO: {message[:250]}", flush=True)
     try:
         datos = json.loads(message)
         if 'MetaData' in datos:
@@ -39,13 +32,14 @@ def on_message(ws, message):
                         viejo_mmsi = list(barcosguardados.keys())[0]
                         del barcosguardados[viejo_mmsi]
     except Exception as e:
-        print(f"❌ Error parseando JSON: {e}", flush=True)
+        pass
 
 def on_open(ws):
-    print("🟢 Conexión establecida. Enviando suscripción...", flush=True)
+    print("🟢 Conectado a AISStream. Enviando suscripción...", flush=True)
     payload = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[50.0, 2.0], [54.0, 7.0]]]
+        "BoundingBoxes": [[[50.0, 2.0], [54.0, 7.0]]],
+        "FilterMessageTypes": ["PositionReport"]
     }
     ws.send(json.dumps(payload))
     print("📤 Suscripción enviada con éxito.", flush=True)
@@ -60,10 +54,10 @@ def iniciar_tracker():
             )
             ws.run_forever(ping_interval=30, ping_timeout=10)
         except Exception as e:
-            print(f"⚠️ Error en bucle WebSocket: {e}", flush=True)
+            print(f"⚠️ Error en websocket: {e}", flush=True)
         time.sleep(5)
 
-# Lanzamos el hilo del tracker en segundo plano
+# Arrancamos el hilo del tracker en segundo plano
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
 hilo.start()
 
