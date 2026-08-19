@@ -30,7 +30,7 @@ def on_message(ws, message):
         print(f"Error procesando mensaje: {e}")
 
 def on_error(ws, error):
-    print(f"Error en el WebSocket del satélite: {error}")
+    print(f"❌ ERROR CRÍTICO en el WebSocket: {repr(error)}")
 
 def on_open(ws):
     print("¡Conectado al satélite de AISStream! Enviando suscripción...")
@@ -52,7 +52,7 @@ def iniciar_tracker():
             )
             ws.run_forever(ping_interval=30, ping_timeout=10)
         except Exception as e:
-            print(f"Excepción general en el tracker: {e}")
+            print(f"⚠️ Excepción general en el tracker: {e}")
         print("Reintentando conexión en 5 segundos...")
         time.sleep(5)
 
