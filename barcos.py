@@ -17,8 +17,7 @@ lock = threading.Lock()
 
 def on_message(ws, message):
     try:
-        # Imprimimos absolutamente TODO lo que llega del satélite para cazar el formato exacto
-        print(f"📥 MENSAJE CRUDO: {message[:300]}", flush=True)
+        print(f"📥 ¡DATOS RECIBIDOS!: {message[:200]}", flush=True)
         datos = json.loads(message)
         if 'MetaData' in datos:
             barco = datos['MetaData']
@@ -26,7 +25,10 @@ def on_message(ws, message):
             if mmsi:
                 with lock:
                     barcosguardados[mmsi] = barco
-                    print(f"🚢 ¡BARCO GUARDADO! MMSI: {mmsi}", flush=True)
+                    print(f"🚢 ¡BARCO GUARDADO! MMSI: {mmsi} - Nombre: {barco.get('ShipName', 'Desconocido')}", flush=True)
+                    if len(barcosguardados) > 150:
+                        viejo_mmsi = list(barcosguardados.keys())[0]
+                        del barcosguardados[viejo_mmsi]
     except Exception as e:
         print(f"❌ Error procesando mensaje: {e}", flush=True)
 
@@ -37,12 +39,14 @@ def on_close(ws, close_status_code, close_msg):
     print(f"🔌 Conexión cerrada. Código: {close_status_code}, Mensaje: {close_msg}", flush=True)
 
 def on_open(ws):
-    print("¡Conectado al satélite! Enviando suscripción...", flush=True)
+    print("¡Conectado al satélite! Enviando suscripción regional...", flush=True)
+    # Acotamos a la zona del Caribe y Atlántico/Golfo para garantizar flujo inmediato de barcos
     subscribe = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[-90, -180], [90, 180]]]
+        "BoundingBoxes": [[[8.0, -90.0], [30.0, -60.0]]]
     }
     ws.send(json.dumps(subscribe))
+    print("📤 ¡Suscripción enviada al satélite!", flush=True)
 
 def iniciar_tracker():
     while True:
