@@ -7,7 +7,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}}
+CORS(app)  # Simplificado para evitar cualquier error de sintaxis
 
 API_KEY = os.environ.get("AIS_API_KEY")
 
