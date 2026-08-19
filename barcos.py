@@ -16,8 +16,7 @@ barcosguardados = {}
 lock = threading.Lock()
 
 def on_message(ws, message):
-    # FORZAMOS A IMPRIMIR TODO LO QUE LLEGUE AL INSTANTE
-    print(f"📥 RAW RECIBIDO: {message[:300]}", flush=True)
+    print(f"📥 ¡LLEGÓ DATOS!: {message[:250]}", flush=True)
     try:
         datos = json.loads(message)
         if 'MetaData' in datos:
@@ -30,7 +29,7 @@ def on_message(ws, message):
             if mmsi and lat is not None and lon is not None:
                 with lock:
                     barcosguardados[mmsi] = meta
-                    print(f"🚢 Barco guardado: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
+                    print(f"🚢 Barco: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
                     if len(barcosguardados) > 300:
                         viejo_mmsi = list(barcosguardados.keys())[0]
                         del barcosguardados[viejo_mmsi]
@@ -38,20 +37,20 @@ def on_message(ws, message):
         print(f"❌ Error procesando JSON: {e}", flush=True)
 
 def on_error(ws, error):
-    print(f"❌ ERROR EN SOCKET: {repr(error)}", flush=True)
+    print(f"❌ ERROR CRÍTICO EN SOCKET: {repr(error)}", flush=True)
 
 def on_close(ws, close_status_code, close_msg):
-    print(f"🔌 Socket cerrado. Reconectando...", flush=True)
+    print(f"🔌 EL SERVIDOR CERRÓ EL SOCKET. Código: {close_status_code} - Msg: {close_msg}", flush=True)
 
 def on_open(ws):
-    print("🟢 Conectado. Enviando suscripción regional...", flush=True)
+    print("🟢 Conexión abierta. Enviando JSON limpio...", flush=True)
+    # Payload mínimo indispensable que exige la API de AISStream
     payload = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[50.0, 2.0], [54.0, 7.0]]],
-        "FilterMessageTypes": ["PositionReport"]
+        "BoundingBoxes": [[[50.0, 2.0], [54.0, 7.0]]]
     }
     ws.send(json.dumps(payload))
-    print("📤 Suscripción enviada.", flush=True)
+    print("📤 JSON enviado. Esperando respuesta del satélite...", flush=True)
 
 def iniciar_tracker():
     while True:
@@ -65,7 +64,8 @@ def iniciar_tracker():
             )
             ws.run_forever(ping_interval=30, ping_timeout=10)
         except Exception as e:
-            print(f"⚠️ Excepción: {e}", flush=True)
+            print(f"⚠️ Excepción general en hilo: {e}", flush=True)
+        print("⏳ Reiniciando ciclo de conexión en 5 segundos...", flush=True)
         time.sleep(5)
 
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
