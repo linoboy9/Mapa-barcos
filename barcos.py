@@ -1,8 +1,8 @@
-import asyncio
+import websocket
 import json
-import os
 import threading
-import websockets
+import os
+import time
 from flask import Flask, jsonify
 from flask_cors import CORS
 
@@ -11,66 +11,60 @@ CORS(app)
 
 API_KEY = os.environ.get("AIS_API_KEY")
 
-# Verificación inicial de la llave
 if API_KEY:
-    print(f"🔑 API_KEY activa y lista para el streaming oficial.", flush=True)
+    print(f"🔑 API_KEY cargada correctamente (Longitud: {len(API_KEY)})", flush=True)
 else:
-    print("🚨 ALERTA: La API_KEY no está disponible.", flush=True)
+    print("🚨 ALERTA: AIS_API_KEY no encontrada en el entorno de Render.", flush=True)
 
 barcosguardados = {}
 lock = threading.Lock()
 
-async def ais_listener():
-    uri = "wss://stream.aisstream.io/v0/stream"
+def on_message(ws, message):
+    # Esto imprimirá de inmediato cualquier dato que suelte el servidor
+    print(f"📥 DATO CRUDO RECIBIDO: {message[:250]}", flush=True)
+    try:
+        datos = json.loads(message)
+        if 'MetaData' in datos:
+            meta = datos['MetaData']
+            mmsi = meta.get('MMSI')
+            nombre = meta.get('ShipName', 'Desconocido').strip()
+            lat = meta.get('latitude')
+            lon = meta.get('longitude')
+            
+            if mmsi and lat is not None and lon is not None:
+                with lock:
+                    barcosguardados[mmsi] = meta
+                    print(f"🚢 Barco: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
+                    if len(barcosguardados) > 300:
+                        viejo_mmsi = list(barcosguardados.keys())[0]
+                        del barcosguardados[viejo_mmsi]
+    except Exception as e:
+        print(f"❌ Error parseando JSON: {e}", flush=True)
+
+def on_open(ws):
+    print("🟢 Conexión establecida. Enviando suscripción...", flush=True)
+    payload = {
+        "APIKey": API_KEY,
+        "BoundingBoxes": [[[50.0, 2.0], [54.0, 7.0]]]
+    }
+    ws.send(json.dumps(payload))
+    print("📤 Suscripción enviada con éxito.", flush=True)
+
+def iniciar_tracker():
     while True:
         try:
-            print("🔄 Conectando a AISStream con la librería oficial asíncrona...", flush=True)
-            async with websockets.connect(uri) as websocket:
-                subscribe_message = {
-                    "APIKey": API_KEY,
-                    "BoundingBoxes": [
-                        [
-                            [50.0, 2.0],
-                            [54.0, 7.0]
-                        ]
-                    ],
-                    "FilterMessageTypes": ["PositionReport"]
-                }
-                await websocket.send(json.dumps(subscribe_message))
-                print("🟢 Suscripción oficial enviada con éxito. Esperando tráfico en tiempo real...", flush=True)
-
-                async for message in websocket:
-                    # Imprimimos de inmediato cualquier byte que llegue del satélite
-                    print(f"📥 DATO RECIBIDO: {message[:200]}", flush=True)
-                    
-                    data = json.loads(message)
-                    meta = data.get("MetaData", {})
-                    mmsi = meta.get("MMSI")
-                    nombre = meta.get("ShipName", "Desconocido").strip()
-                    lat = meta.get("latitude")
-                    lon = meta.get("longitude")
-
-                    if mmsi and lat is not None and lon is not None:
-                        with lock:
-                            barcosguardados[mmsi] = meta
-                            print(f"🚢 Barco guardado: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
-                            
-                            # Límite de 300 barcos en memoria
-                            if len(barcosguardados) > 300:
-                                viejo_mmsi = list(barcosguardados.keys())[0]
-                                del barcosguardados[viejo_mmsi]
-                                
+            ws = websocket.WebSocketApp(
+                "wss://stream.aisstream.io/v0/stream",
+                on_open=on_open,
+                on_message=on_message
+            )
+            ws.run_forever(ping_interval=30, ping_timeout=10)
         except Exception as e:
-            print(f"⚠️ Error en websocket asíncrono: {e}", flush=True)
-            await asyncio.sleep(5)
+            print(f"⚠️ Error en bucle WebSocket: {e}", flush=True)
+        time.sleep(5)
 
-def run_async_loop():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(ais_listener())
-
-# Arrancamos el oyente asíncrono en segundo plano
-hilo = threading.Thread(target=run_async_loop, daemon=True)
+# Lanzamos el hilo del tracker en segundo plano
+hilo = threading.Thread(target=iniciar_tracker, daemon=True)
 hilo.start()
 
 @app.route('/datos')
