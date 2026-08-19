@@ -16,6 +16,8 @@ barcosguardados = {}
 lock = threading.Lock()
 
 def on_message(ws, message):
+    # FORZAMOS A IMPRIMIR TODO LO QUE LLEGUE AL INSTANTE
+    print(f"📥 RAW RECIBIDO: {message[:300]}", flush=True)
     try:
         datos = json.loads(message)
         if 'MetaData' in datos:
@@ -28,12 +30,12 @@ def on_message(ws, message):
             if mmsi and lat is not None and lon is not None:
                 with lock:
                     barcosguardados[mmsi] = meta
-                    print(f"Barco: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
+                    print(f"🚢 Barco guardado: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
                     if len(barcosguardados) > 300:
                         viejo_mmsi = list(barcosguardados.keys())[0]
                         del barcosguardados[viejo_mmsi]
     except Exception as e:
-        print(f"❌ Error procesando mensaje: {e}", flush=True)
+        print(f"❌ Error procesando JSON: {e}", flush=True)
 
 def on_error(ws, error):
     print(f"❌ ERROR EN SOCKET: {repr(error)}", flush=True)
