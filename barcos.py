@@ -11,11 +11,18 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 API_KEY = os.environ.get("AIS_API_KEY")
+
+if not API_KEY:
+    print("⚠️ ¡ALERTA! La variable de entorno 'AIS_API_KEY' NO está configurada en Render.")
+else:
+    print("✅ API Key detectada correctamente.")
+
 barcosguardados = {}
 lock = threading.Lock()
 
 def on_message(ws, message):
     try:
+        print(f"📥 Datos crudos recibidos del satélite: {message[:120]}...")
         datos = json.loads(message)
         if 'MetaData' in datos:
             barco = datos['MetaData']
@@ -23,11 +30,14 @@ def on_message(ws, message):
             if mmsi:
                 with lock:
                     barcosguardados[mmsi] = barco
+                    print(f"🚢 Barco guardado/actualizado: {barco.get('ShipName', 'Desconocido')} (MMSI: {mmsi})")
                     if len(barcosguardados) > 150:
                         viejo_mmsi = list(barcosguardados.keys())[0]
                         del barcosguardados[viejo_mmsi]
+        else:
+            print("⚠️ El mensaje no contiene 'MetaData'")
     except Exception as e:
-        print(f"Error procesando mensaje: {e}")
+        print(f"❌ Error procesando mensaje: {e}")
 
 def on_error(ws, error):
     print(f"❌ ERROR CRÍTICO en el WebSocket: {repr(error)}")
