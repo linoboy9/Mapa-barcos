@@ -2,98 +2,82 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Centro de Control - Barcos en Vivo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Barcos en Vivo</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: system-ui, sans-serif; }
-        #globe-container { width: 100vw; height: 100vh; }
+        body {
+            margin: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        #globe-container {
+            width: 100vw;
+            height: 100vh;
+        }
         #info {
             position: absolute;
-            top: 12px;
-            left: 12px;
+            top: 15px;
+            left: 15px;
+            right: 15px;
             color: white;
-            background: rgba(0, 0, 0, 0.75);
-            padding: 10px 14px;
-            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 16px;
+            border-radius: 12px;
             z-index: 10;
-            font-size: 14px;
-            max-width: 280px;
+            font-size: 15px;
+            text-align: center;
         }
     </style>
-
-    <!-- Librerías -->
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-    <script src="https://unpkg.com/globe.gl@2.31.0"></script>
+    <script src="https://unpkg.com/globe.gl"></script>
 </head>
 <body>
-    <div id="info">🛰️ Cargando tráfico marítimo...</div>
+    <div id="info">🛰️ Cargando mapa...</div>
     <div id="globe-container"></div>
 
     <script>
-        // Inicializar el globo
-        const world = Globe()(document.getElementById('globe-container'))
-            .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-day.jpg')
-            .backgroundColor('#000011')
+        const container = document.getElementById('globe-container');
+        const info = document.getElementById('info');
+
+        const world = Globe()(container)
+            .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+            .backgroundColor('#000010')
             .htmlLat(d => d.latitude)
             .htmlLng(d => d.longitude)
             .htmlElement(d => {
                 const el = document.createElement('div');
-                const nombre = (d.ShipName || 'Desconocido').trim();
-                el.innerHTML = `
-                    <div style="
-                        background: rgba(0,0,0,0.85);
-                        color: #fff;
-                        padding: 3px 7px;
-                        border-radius: 5px;
-                        font-size: 11px;
-                        white-space: nowrap;
-                        pointer-events: none;
-                        border: 1px solid #00ff88;
-                    ">
-                        🚢 ${nombre}
-                    </div>`;
+                el.innerHTML = `<div style="background:rgba(0,0,0,0.9);color:#0f0;padding:4px 8px;border-radius:6px;font-size:12px;border:1px solid #0f0;">🚢 ${(d.ShipName || 'Barco').trim()}</div>`;
                 return el;
             });
 
-        // Rotación automática suave
+        // Mejor para móvil
+        world.controls().enableZoom = true;
         world.controls().autoRotate = true;
-        world.controls().autoRotateSpeed = 0.3;
+        world.controls().autoRotateSpeed = 0.4;
 
-        const API_URL = 'https://mapa-barcos-api.onrender.com/datos';
+        const API = 'https://mapa-barcos-api.onrender.com/datos';
 
-        function cargarBarcos() {
-            fetch(API_URL)
-                .then(res => {
-                    if (!res.ok) throw new Error('Error en el servidor: ' + res.status);
-                    return res.json();
-                })
-                .then(ships => {
-                    if (Array.isArray(ships) && ships.length > 0) {
-                        // Filtrar solo los que tienen coordenadas válidas
-                        const validShips = ships.filter(s => 
-                            s.latitude != null && s.longitude != null
-                        );
-                        
-                        world.htmlElementsData(validShips);
-                        document.getElementById('info').innerHTML = 
-                            `🛰️ En línea: <b>${validShips.length}</b> barcos activos`;
+        function actualizar() {
+            fetch(API)
+                .then(r => r.json())
+                .then(data => {
+                    if (Array.isArray(data) && data.length > 0) {
+                        const barcos = data.filter(b => b.latitude && b.longitude);
+                        world.htmlElementsData(barcos);
+                        info.innerHTML = `🛰️ ${barcos.length} barcos activos`;
                     } else {
-                        document.getElementById('info').innerHTML = 
-                            '🛰️ Esperando datos del servidor...';
+                        info.innerHTML = '🛰️ Esperando barcos...';
                     }
                 })
-                .catch(err => {
-                    console.error(err);
-                    document.getElementById('info').innerHTML = 
-                        '⚠️ Error de conexión con Render<br><small>Reintentando...</small>';
+                .catch(e => {
+                    info.innerHTML = '⚠️ Error de conexión<br>Reintentando...';
+                    console.error(e);
                 });
         }
 
-        // Primera carga
-        cargarBarcos();
-
-        // Actualizar cada 6 segundos
-        setInterval(cargarBarcos, 6000);
+        actualizar();
+        setInterval(actualizar, 7000);
     </script>
 </body>
 </html>
