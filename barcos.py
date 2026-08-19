@@ -33,7 +33,6 @@ def on_message(ws, message):
                     barcosguardados[mmsi] = meta
                     print(f"🚢 Barco: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
                     
-                    # Limitar a 300 barcos
                     if len(barcosguardados) > 300:
                         viejo = next(iter(barcosguardados))
                         del barcosguardados[viejo]
@@ -54,8 +53,8 @@ def on_open(ws):
     
     payload = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[-90.0, -180.0], [90.0, 180.0]]],  # Todo el mundo
-        "FilterMessageTypes": ["PositionReport"]
+        "BoundingBoxes": [[[-90.0, -180.0], [90.0, 180.0]]]
+        # Sin FilterMessageTypes para recibir todo
     }
     ws.send(json.dumps(payload))
     print("📤 Suscripción enviada con éxito.", flush=True)
