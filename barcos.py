@@ -27,9 +27,13 @@ def on_message(ws, message):
                         viejo_mmsi = list(barcosguardados.keys())[0]
                         del barcosguardados[viejo_mmsi]
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error procesando mensaje: {e}")
+
+def on_error(ws, error):
+    print(f"Error en el WebSocket del satélite: {error}")
 
 def on_open(ws):
+    print("¡Conectado al satélite de AISStream! Enviando suscripción...")
     subscribe = {
         "APIKey": API_KEY,
         "BoundingBoxes": [[[-90, -180], [90, 180]]]
@@ -39,14 +43,17 @@ def on_open(ws):
 def iniciar_tracker():
     while True:
         try:
+            print("Intentando conectar al satélite...")
             ws = websocket.WebSocketApp(
                 "wss://stream.aisstream.io/v0/stream",
                 on_message=on_message,
+                on_error=on_error,
                 on_open=on_open
             )
             ws.run_forever(ping_interval=30, ping_timeout=10)
-        except:
-            pass
+        except Exception as e:
+            print(f"Excepción general en el tracker: {e}")
+        print("Reintentando conexión en 5 segundos...")
         time.sleep(5)
 
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
