@@ -17,7 +17,7 @@ lock = threading.Lock()
 
 def on_message(ws, message):
     try:
-        # Imprimimos de inmediato cualquier cosa que suelte el satélite para romper el silencio
+        # En cuanto llegue el primer paquete, lo gritamos en los logs
         print(f"📡 RECIBIDO:", message[:100], flush=True)
         datos = json.loads(message)
         if 'MetaData' in datos:
@@ -47,7 +47,8 @@ def on_open(ws):
     print("🟢 ¡Canal abierto con éxito! Enviando credenciales...", flush=True)
     payload = {
         "APIKey": API_KEY,
-        "BoundingBoxes": [[[-90, -180], [90, 180]]]
+        # Zona de Europa / Atlántico Norte (Tráfico masivo garantizado para llaves nuevas)
+        "BoundingBoxes": [[[35.0, -15.0], [65.0, 25.0]]]
     }
     ws.send(json.dumps(payload))
     print("📤 Credenciales enviadas. Esperando tráfico de barcos...", flush=True)
@@ -69,7 +70,6 @@ def iniciar_tracker():
         print("⏳ Reintentando conexión en 5 segundos...", flush=True)
         time.sleep(5)
 
-# Arrancamos el hilo en segundo plano
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
 hilo.start()
 
