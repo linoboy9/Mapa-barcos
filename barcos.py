@@ -18,7 +18,6 @@ lock = threading.Lock()
 def on_message(ws, message):
     try:
         datos = json.loads(message)
-        
         print(f"Mensaje recibido: {datos.get('MessageType', 'Desconocido')}", flush=True)
         
         if 'MetaData' in datos:
@@ -32,35 +31,33 @@ def on_message(ws, message):
                 with lock:
                     barcosguardados[mmsi] = meta
                     print(f"🚢 Barco: {nombre} | Lat: {lat} | Lon: {lon}", flush=True)
-                    
                     if len(barcosguardados) > 300:
                         viejo = next(iter(barcosguardados))
                         del barcosguardados[viejo]
-                        
     except Exception as e:
-        print(f"❌ Error procesando mensaje: {e}", flush=True)
+        print(f"❌ Error: {e}", flush=True)
 
 def on_error(ws, error):
-    print(f"⚠️ Error en WebSocket: {error}", flush=True)
+    print(f"⚠️ Error WebSocket: {error}", flush=True)
 
 def on_close(ws, close_status_code, close_msg):
-    print(f"🔴 Conexión cerrada: {close_status_code} - {close_msg}", flush=True)
+    print(f"🔴 Cerrado: {close_status_code}", flush=True)
 
 def on_open(ws):
-    print("🟢 Conectado a AISStream. Enviando suscripción...", flush=True)
-    print(f"Usando API Key: {API_KEY[:12]}..." if API_KEY else "⚠️ NO HAY API KEY", flush=True)
+    print("🟢 Conectado a AISStream...", flush=True)
+    print(f"API Key: {API_KEY[:10]}..." if API_KEY else "NO HAY API KEY", flush=True)
     
     payload = {
         "APIKey": API_KEY,
         "BoundingBoxes": [[[50.0, -5.0], [52.0, 2.0]]]
     }
     ws.send(json.dumps(payload))
-    print("📤 Suscripción enviada con éxito.", flush=True)
+    print("📤 Suscripción enviada", flush=True)
 
 def iniciar_tracker():
     while True:
         try:
-            print("Intentando conectar al WebSocket...", flush=True)
+            print("Conectando...", flush=True)
             ws = websocket.WebSocketApp(
                 "wss://stream.aisstream.io/v0/stream",
                 on_open=on_open,
@@ -70,9 +67,7 @@ def iniciar_tracker():
             )
             ws.run_forever(ping_interval=30, ping_timeout=10)
         except Exception as e:
-            print(f"⚠️ Error general en tracker: {e}", flush=True)
-        
-        print("Reintentando en 5 segundos...", flush=True)
+            print(f"Error tracker: {e}", flush=True)
         time.sleep(5)
 
 hilo = threading.Thread(target=iniciar_tracker, daemon=True)
